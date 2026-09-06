@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0F1A20">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DriverPro">
+<meta name="build" content="202609062200">
+<title>DriverPro</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="img/icone-192.png">
+<link rel="icon" href="img/icone-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   APP DO MOTORISTA — 4ª VISÃO (Renan, 05/09/2026): fiel ao app de orçamento
+   escuro. Grafite (não preto), "Hi, Vicky! / June, 2025" no alto à esquerda,
+   toggle de tema (meio círculo) + avatar à direita; "Current Balance" pequeno
+   e o valor grande em fonte FINA; card "Monthly Budget" com a barra VERMELHA,
+   "$12,00 / $2,000" à esquerda e "%75" à direita; lista com ícone quadrado,
+   nome + data, valor à direita (verde/vermelho); barra de baixo só com a
+   casa, o "+" vermelho grande no meio e o gráfico.
+
+   Fonte Inter (a da imagem). A cor é o vermelho-alaranjado dela. Tema claro
+   no toggle do topo. Dados de exemplo. Os outros: /app-motorista/, -2, -3.
+   ============================================================ */
+:root{
+  /* cores MEDIDAS nos pixels da imagem (05/09/2026) */
+  --bg:#0F1A20; --card:#464B4F; --card2:#E5E6E8; --brd:#273035; --linha:#0F1A20;
+  --txt:#F4F5F7; --txt2:#979C9F; --txt3:#6B7276;
+  --acc:#F22C05; --verde:#4CD964; --vermelho:#F0483C; --nav:#464B4F;
+  --safe-top:env(safe-area-inset-top,0px); --safe-bot:env(safe-area-inset-bottom,0px);
+}
+body.claro{
+  --bg:#EEF0F3; --card:#FFFFFF; --card2:#D9DDE3; --brd:rgba(20,24,32,.12); --linha:#F6F7F9;
+  --txt:#181C24; --txt2:#5E6674; --txt3:#9AA2AE; --verde:#1E9E52; --vermelho:#D93A2E; --nav:#FFFFFF;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--txt);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;font-size:13px;overflow:hidden;overscroll-behavior:none;}
+.app{height:100%;display:flex;flex-direction:column;position:relative;}
+.corpo{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 20px 96px;}
+.tela{display:none;} .tela.on{display:block;}
+svg{display:block;}
+
+/* ── topo ── */
+.topo{padding:calc(var(--safe-top) + 16px) 20px 6px;display:flex;align-items:center;gap:10px;}
+.topo b{display:block;font-size:15px;font-weight:600;line-height:1.2;}
+.topo span{display:block;font-size:11px;color:var(--txt2);font-weight:400;margin-top:3px;}
+.topo .acoes{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.tema{width:22px;height:22px;border-radius:50%;border:2px solid var(--txt);background:linear-gradient(90deg,var(--txt) 50%,transparent 50%);cursor:pointer;}
+.topo .av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;color:#fff;
+  background:linear-gradient(145deg,#6B7075,#464B4F);cursor:pointer;border:0;font-family:inherit;}
+.menu{position:absolute;right:20px;top:calc(var(--safe-top) + 58px);z-index:20;background:var(--card);border:1px solid var(--brd);border-radius:12px;
+  padding:6px;min-width:190px;box-shadow:0 12px 30px rgba(0,0,0,.4);display:none;}
+.menu.on{display:block;}
+.menu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--txt);font-family:inherit;font-size:12.5px;font-weight:500;padding:10px 12px;border-radius:8px;cursor:pointer;}
+.menu button:hover{background:var(--brd);}
+
+/* ── saldo: rótulo pequeno e o valor grande em fonte fina ── */
+.rot{font-size:10.5px;color:var(--txt2);font-weight:400;}
+.saldo{margin:26px 0 18px;}
+.saldo .val{font-size:33px;font-weight:600;letter-spacing:.4px;line-height:1.1;margin-top:8px;}
+.saldo .val small{font-size:33px;font-weight:600;margin-right:0;}
+.saldo .aviso{font-size:11px;color:var(--txt2);margin-top:8px;line-height:1.45;}
+.saldo .aviso b{color:var(--txt);font-weight:600;}
+
+/* ── card "Meta do mês" com a barra vermelha ── */
+.card{background:var(--card);border-radius:10px;padding:15px 16px;margin-bottom:18px;}
+.meta b{display:block;font-size:15px;font-weight:600;}
+.barra{height:11px;border-radius:6px;background:var(--card2);overflow:hidden;margin:16px 0 12px;}
+.barra i{display:block;height:100%;border-radius:6px;background:var(--acc);transition:width .4s;}
+.meta .pe{display:flex;justify-content:space-between;font-size:10.5px;color:var(--txt2);font-weight:400;}
+.meta .pe b{display:inline;font-size:10.5px;font-weight:500;color:var(--txt2);}
+
+/* ── lista: cards separados com ícone quadrado ── */
+.sec{font-size:10.5px;color:var(--txt2);font-weight:400;margin:4px 0 10px;display:flex;}
+.sec a{display:none;}
+.li{display:flex;align-items:center;gap:12px;background:var(--linha);border:1px solid var(--brd);border-radius:9px;padding:9px 12px;margin-bottom:10px;}
+.li .ic{width:30px;height:30px;border-radius:7px;background:none;border:1px solid var(--txt3);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:var(--txt);}
+.li .ic svg{width:14px;height:14px;}
+.li .tx{flex:1;min-width:0;}
+.li .tx b{display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.li .tx span{display:block;font-size:10.5px;color:var(--txt2);font-weight:400;margin-top:2px;}
+.li .vl{flex:0 0 auto;font-size:11.5px;font-weight:600;text-align:right;}
+.li .vl small{display:block;font-size:10px;color:var(--txt3);font-weight:400;margin-top:2px;}
+.pos{color:var(--verde);} .neg{color:var(--vermelho);}
+.li.eu .ic{border-color:var(--acc);color:var(--acc);}
+
+/* ── barra de baixo: card FLUTUANTE (como na visão clara), com as cinco visões
+   da original — Renan, 05/09/2026. Sem o botão vermelho do meio. ── */
+.nav{position:absolute;left:16px;right:16px;bottom:calc(var(--safe-bot) + 14px);display:flex;justify-content:space-between;align-items:center;
+  background:var(--nav);border-radius:18px;padding:8px 10px;box-shadow:0 14px 34px rgba(0,0,0,.45);z-index:10;}
+body.claro .nav{box-shadow:0 14px 34px rgba(20,24,32,.16);border:1px solid var(--brd);}
+.nav button{flex:1;background:none;border:0;color:var(--txt2);font-family:inherit;font-size:10px;font-weight:500;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:4px;padding:5px 0 3px;border-radius:12px;}
+.nav button svg{width:21px;height:21px;}
+.nav button.on{color:#fff;background:var(--acc);}
+body.claro .nav button.on{color:#fff;}
+
+/* ── GANHOS ── */
+.gcab{display:flex;align-items:center;gap:10px;margin-top:22px;}
+.gcab .rot{flex:1;}
+.anosel{position:relative;}
+.anosel select{appearance:none;-webkit-appearance:none;background:var(--linha);border:1px solid var(--brd);border-radius:8px;color:var(--txt);
+  font-family:inherit;font-size:12px;font-weight:600;padding:7px 28px 7px 12px;cursor:pointer;}
+.anosel::after{content:'';position:absolute;right:11px;top:50%;width:6px;height:6px;border-right:1.5px solid var(--txt2);border-bottom:1.5px solid var(--txt2);transform:translateY(-70%) rotate(45deg);pointer-events:none;}
+.gtot{font-size:33px;font-weight:600;letter-spacing:.4px;line-height:1.1;margin:8px 0 22px;}
+.gtot small{font-size:33px;font-weight:600;margin-right:0;}
+.li.vig .tx b{color:var(--acc);}
+.li.vig .tx span i{font-style:normal;background:rgba(232,65,42,.14);color:var(--acc);border-radius:5px;padding:1px 6px;font-size:9.5px;font-weight:600;margin-left:4px;}
+
+/* ── NOTA ── */
+.card.contorno{background:var(--linha);border:1px solid var(--brd);border-radius:9px;}
+.anelwrap{display:flex;align-items:center;gap:16px;margin-top:8px;}
+.anel{position:relative;width:118px;height:118px;flex:0 0 auto;}
+.anel > svg{width:100%;height:100%;transform:rotate(-90deg);}
+.anel > svg circle{fill:none;stroke-width:10;stroke-linecap:round;}
+.anel .trilho{stroke:var(--brd);}
+.anel .arco{stroke:var(--acc);}
+.anel .dentro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.anel .n{font-size:28px;font-weight:500;line-height:1;}
+.anel .l{font-size:10px;color:var(--txt2);margin-top:3px;}
+.anelwrap .tx b{display:block;font-size:15px;font-weight:600;}
+.anelwrap .tx span{display:block;font-size:11.5px;color:var(--txt2);margin-top:4px;line-height:1.45;}
+.pilar{padding:12px 14px;background:var(--linha);border:1px solid var(--brd);border-radius:9px;margin-bottom:10px;}
+.pilar .cab{display:flex;align-items:center;gap:10px;}
+.pilar .cab b{font-size:13px;font-weight:600;flex:1;}
+.pilar .cab .nota{font-size:18px;font-weight:500;}
+.pilar .med{font-size:10.5px;color:var(--txt2);margin-top:4px;}
+.pilar .dica{font-size:11.5px;color:var(--txt2);margin-top:9px;line-height:1.5;border:1px solid var(--brd);border-radius:8px;padding:9px 11px;}
+
+/* ── REGRAS ── */
+.passo{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;background:var(--linha);border:1px solid var(--brd);border-radius:9px;margin-bottom:10px;}
+.passo .n{width:30px;height:30px;border-radius:7px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;border:1px solid var(--txt3);color:var(--txt);}
+.passo .t b{display:block;font-size:13px;font-weight:600;margin:4px 0 3px;}
+.passo .t span{font-size:11.5px;color:var(--txt2);line-height:1.5;}
+
+/* ── ADMIN: lista de motoristas ── */
+#tela-sel{display:none;height:100%;flex-direction:column;padding:calc(var(--safe-top) + 16px) 20px 16px;}
+#tela-sel.on{display:flex;}
+.sel-cab{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.sel-cab b{display:block;font-size:15px;font-weight:600;}
+.sel-cab span{display:block;font-size:11px;color:var(--txt2);margin-top:3px;}
+.rb-sair{margin-left:auto;background:none;border:1px solid var(--brd);color:var(--txt2);font-family:inherit;font-size:11.5px;font-weight:500;border-radius:8px;padding:7px 11px;cursor:pointer;}
+#selBusca{width:100%;background:var(--linha);border:1px solid var(--brd);border-radius:9px;padding:12px 14px;color:var(--txt);font-family:inherit;font-size:14px;margin-bottom:12px;}
+#selBusca:focus{outline:none;border-color:var(--acc);}
+.sel-lista{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.sel-lista .li{cursor:pointer;}
+.sel-lista .li:active{border-color:var(--acc);}
+
+/* ── LOGIN ── */
+#tela-login{display:none;height:100%;flex-direction:column;justify-content:center;padding:0 28px;}
+#tela-login.on{display:flex;}
+/* logo do DriverPro: quadrado vermelho com o conta-giros; wordmark com o "Pro" em vermelho */
+.logo-lg{width:64px;height:64px;margin-bottom:16px;}
+.logo-lg svg{width:100%;height:100%;}
+.logo-sm{width:34px;height:34px;flex:0 0 auto;margin-right:2px;}
+.logo-sm svg{width:100%;height:100%;}
+.marca b{color:var(--acc);font-weight:700;}
+.lg-t{font-size:28px;font-weight:700;letter-spacing:-.6px;}
+.lg-s{font-size:12px;color:var(--txt2);margin:6px 0 28px;}
+.campo{margin-bottom:12px;}
+.campo label{display:block;font-size:10.5px;color:var(--txt2);margin-bottom:7px;}
+.campo input{width:100%;background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:15px 16px;color:var(--txt);font-family:inherit;font-size:15px;font-weight:500;letter-spacing:.5px;}
+.campo input::placeholder{color:var(--txt3);font-weight:400;}
+.campo input:focus{outline:none;border-color:var(--acc);}
+.btn{width:100%;border:0;border-radius:12px;padding:16px;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer;color:#fff;background:var(--acc);margin-top:10px;box-shadow:0 10px 24px rgba(232,65,42,.3);}
+.lg-rodape{text-align:center;font-size:12px;color:var(--txt2);margin-top:20px;}
+.lg-rodape a{color:var(--txt);font-weight:600;cursor:pointer;}
+.lg-erro{font-size:12px;color:var(--vermelho);font-weight:500;margin:2px 0 6px;line-height:1.4;}
+.btn[disabled]{opacity:.6;cursor:default;}
+.proto{text-align:center;font-size:10px;color:var(--txt3);margin:6px 0 8px;}
+/* instalar o app: link nas telas de login/seleção + folha com o passo a passo quando o navegador não oferece o botão (iPhone, Safari) */
+.inst-link{text-align:center;font-size:12px;margin-top:14px;}
+.inst-link a{color:var(--txt2);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+.inst{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;}
+.inst.on{display:flex;}
+.inst-box{width:100%;max-width:440px;background:var(--card);border:1px solid var(--brd);border-radius:18px 18px 0 0;padding:20px 22px calc(22px + var(--safe-bot,0px));}
+.inst-box b{display:block;font-size:15px;margin-bottom:6px;}
+.inst-box p{font-size:12.5px;color:var(--txt2);line-height:1.55;margin:0 0 6px;}
+.inst-box .btn{margin-top:14px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div id="tela-login" class="on">
+  <div class="logo-lg"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="2" y="2" width="44" height="44" rx="12" fill="#F22C05"/><path d="M12 30a12 12 0 1 1 24 0" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><path d="M24 30l7-8" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><circle cx="24" cy="30" r="2.4" fill="#fff"/></svg></div>
+  <div class="lg-t marca">Driver<b>Pro</b></div>
+  <div class="lg-s">Seu bônus por dirigir bem. Entre para ver quanto você tem a ganhar este mês.</div>
+  <div class="campo"><label>Seu CPF</label><input id="cpf" type="tel" inputmode="numeric" placeholder="000.000.000-00" maxlength="14"></div>
+  <div class="campo"><label>Sua senha de 4 números</label><input id="pin" type="password" inputmode="numeric" placeholder="••••" maxlength="4"></div>
+  <div class="lg-erro" id="lgErro" style="display:none"></div>
+  <button class="btn" id="btEntrar" onclick="entrar()">Entrar</button>
+  <div class="lg-rodape" id="lgRodape">Primeira vez aqui? <a onclick="modoLogin('criar')">Criar senha</a></div>
+  <div class="inst-link" id="lgInstalar" style="display:none"><a onclick="instalar()">Instalar o app no celular</a></div>
+</div>
+
+<!-- ══════════ ADMIN: escolhe o motorista ══════════ -->
+<div id="tela-sel">
+  <div class="sel-cab"><div class="logo-sm"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="2" y="2" width="44" height="44" rx="12" fill="#F22C05"/><path d="M12 30a12 12 0 1 1 24 0" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><path d="M24 30l7-8" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><circle cx="24" cy="30" r="2.4" fill="#fff"/></svg></div><div><b>Selecione o motorista</b><span id="selSub">para ver o app como ele vê</span></div>
+    <button class="rb-sair" onclick="CAD=null;sair()">Voltar</button></div>
+  <div class="anosel" id="selUniWrap" style="display:none;margin-bottom:10px"><select id="selUni" onchange="cadUnidade(this.value)" aria-label="Unidade" style="width:100%"></select></div>
+  <input id="selBusca" type="search" placeholder="Buscar por nome ou unidade" autocomplete="off">
+  <div class="inst-link" id="selInstalar" style="display:none;margin:0 0 12px"><a onclick="instalar()">Instalar o app no celular</a></div>
+  <div class="sel-lista" id="selLista"></div>
+</div>
+
+<!-- passo a passo de instalação, quando o navegador não oferece o botão -->
+<div class="inst" id="inst" onclick="if(event.target===this)this.classList.remove('on')">
+  <div class="inst-box">
+    <b>Instalar o DriverPro</b>
+    <div id="instTxt"></div>
+    <button class="btn" onclick="document.getElementById('inst').classList.remove('on')">Entendi</button>
+  </div>
+</div>
+
+<!-- ══════════ APP ══════════ -->
+<div class="app" id="app" style="display:none">
+  <div class="topo">
+    <div class="logo-sm"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="2" y="2" width="44" height="44" rx="12" fill="#F22C05"/><path d="M12 30a12 12 0 1 1 24 0" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><path d="M24 30l7-8" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><circle cx="24" cy="30" r="2.4" fill="#fff"/></svg></div>
+    <div><b id="ola">Olá, Marcio!</b><span id="sub">Setembro, 2026</span></div>
+    <div class="acoes">
+      <div class="tema" id="btTema" role="button" aria-label="Tema"></div>
+      <button class="av" id="av" onclick="document.getElementById('menu').classList.toggle('on')">MA</button>
+    </div>
+  </div>
+  <div class="menu" id="menu">
+    <button id="btInstalar" onclick="instalar();fechaMenu()" style="display:none">Instalar no celular</button>
+    <button id="btTrocar" onclick="escolheMotorista()" style="display:none">Trocar motorista</button>
+    <button onclick="sair()">Sair</button>
+  </div>
+
+  <div class="corpo">
+
+    <!-- ── INÍCIO ── -->
+    <section class="tela on" id="v-inicio">
+      <div class="saldo">
+        <div class="rot" id="rotSaldo">Saldo atual</div>
+        <div class="val" id="saldo"><small>R$</small>180,80</div>
+        <div class="aviso" id="avisoEleg" style="display:none"></div>
+      </div>
+
+      <div class="card meta">
+        <b>Meta do mês</b>
+        <div class="barra"><i id="barraSaldo" style="width:90%"></i></div>
+        <div class="pe"><span id="metaTxt"><b>R$ 180,80</b> / R$ 200,00</span><span id="metaPct">90%</span></div>
+      </div>
+
+      <div class="sec">Onde o dinheiro foi<a onclick="irPara('nota')">Ver a nota</a></div>
+      <div id="perdas"></div>
+
+      <div class="sec" style="margin-top:14px">Pódio e elegibilidade<a onclick="irPara('ranking')">Ver ranking</a></div>
+      <div id="extras"></div>
+      <div class="proto"><span id="unid"></span></div>
+    </section>
+
+    <!-- ── GANHOS ── -->
+    <section class="tela" id="v-ganhos">
+      <div class="gcab"><div class="rot" id="anoTit">Você ganhou em 2026</div><div class="anosel"><select id="anoSel" onchange="mudaAno(+this.value)" aria-label="Ano"></select></div></div>
+      <div class="gtot" id="ganhoAno">R$ 0,00</div>
+      <div class="sec">Mês a mês</div>
+      <div id="meses"></div>
+    </section>
+
+    <!-- ── NOTA ── -->
+    <section class="tela" id="v-nota">
+      <div class="card contorno anelwrap">
+        <div class="anel">
+          <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="trilho" cx="50" cy="50" r="42"/><circle class="arco" id="arco" cx="50" cy="50" r="42"/></svg>
+          <div class="dentro"><div class="n" id="score">90,4</div><div class="l">sua nota</div></div>
+        </div>
+        <div class="tx"><b id="faixaTxt">Elite</b><span>De 0 a 100. A nota decide quanto dos R$ 200 fica com você.</span></div>
+      </div>
+      <div class="sec">Nota de cada coisa</div>
+      <div id="pilares"></div>
+    </section>
+
+    <!-- ── RANKING ── -->
+    <section class="tela" id="v-ranking">
+      <div class="sec" style="margin-top:20px">Os 15 de Piraí · setembro</div>
+      <div id="ranking"></div>
+    </section>
+
+    <!-- ── REGRAS ── -->
+    <section class="tela" id="v-regras">
+      <div class="sec" style="margin-top:20px">Como funciona o&nbsp;<span id="nomeApp2"></span></div>
+      <div>
+        <div class="passo"><div class="n">1</div><div class="t"><b id="rg1">Todo mês você ganha R$ 200</b><span>O dinheiro já entra na sua conta no dia 1º. Ele é seu — o que você faz durante o mês decide quanto fica.</span></div></div>
+        <div class="passo"><div class="n">2</div><div class="t"><b>Dirigindo mal, o saldo cai</b><span>Cada coisa que a gente mede tem um peso. Quanto pior o resultado, mais o saldo desce. Você vê a queda todo dia, aqui.</span></div></div>
+        <div class="passo"><div class="n">3</div><div class="t"><b>No fim do mês você recebe o que sobrou</b><span id="rg3">Se rodou 1.000 km e ficou entre os 15. Os três melhores da unidade ainda levam R$ 300, R$ 150 e R$ 100.</span></div></div>
+      </div>
+      <div class="sec">Como a nota é feita</div>
+      <div id="regua"></div>
+    </section>
+
+  </div>
+
+  <nav class="nav" id="nav">
+    <button class="on" data-v="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>Carteira</button>
+    <button data-v="ganhos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Ganhos</button>
+    <button data-v="nota"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-5"/></svg>Nota</button>
+    <button data-v="ranking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg>Ranking</button>
+    <button data-v="regras"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7"/><path d="M12 17h.01"/></svg>Regras</button>
+  </nav>
+</div>
+
+<script>
+/* ============================================================
+   APP DO MOTORISTA — ligado ao Supabase (05/09/2026)
+   Login por CPF + PIN de 4 dígitos, sessão por token, e UMA chamada
+   (ce_app_dados) que devolve tudo que as cinco telas mostram. Backend em
+   scripts/app-motorista.sql. `?demo=1` carrega dados de exemplo sem banco.
+   ============================================================ */
+var SUPABASE_URL = 'https://lozwipoeacpvplgkrxkq.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_ggKEEebc5zjgQDVsF92Upw_6uoLmKe9';
+var NOME_APP = 'DriverPro';   // nome do programa (Renan, 05/09/2026)
+var DEMO = /[?&]demo=1/.test(location.search);
+document.getElementById('nomeApp2').textContent = NOME_APP;
+var $ = function(id){ return document.getElementById(id); };
+var brl = function(v){ return 'R$ ' + (+v || 0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+var MESES_N = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+function rpc(fn, args){
+  return fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, { method:'POST',
+    headers:{ 'Content-Type':'application/json', apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY },
+    body: JSON.stringify(args || {}) })
+  .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.message || j.hint || ('HTTP ' + r.status)); return j; }); });
+}
+
+/* ── dados de exemplo (?demo=1): o mesmo formato que ce_app_dados devolve ── */
+var DEMO_DADOS = { ok:true, nome:'Marcio Andre', unidade:'EMP PIRAI', vigente:'2026-09', posicao:7,
+  regras:{ saldo_inicial:200, km_min:1000, viagens_min:0, dias_min:0, score_min:0, top_n:15, podio:[300,150,100], pesos:{rpm:25,idle:20,acel:15} },
+  ranking:[['Marcio A.',90.5],['Anderson M.',89.3],['Wanderson P.',88.4],['Mario Sergio D.',86.4],['Breno E.',86.4],['Lucas C.',85.8],['Willian A.',84.1],
+    ['Luiz Carlos S.',83.8],['Thiago A.',83.7],['Paulo Roberto A.',83.6],['Wandiney T.',83.6],['Carlos Roberto C.',83.4],['Dalisvan S.',83.4],['Luiz Carlos B.',83.3],['Natanael S.',83.3]]
+    .map(function(r,i){ return { pos:i+1, nome:r[0], pontuacao:r[1], eu:i===6 }; }),
+  meses:[
+    { competencia:'2026-09', nota:90.4, km:1240, posicao:7, elegivel:true, carteira:180.80, podio:0, rpm:85, idle:90, acel:100, motivo:null },
+    { competencia:'2026-08', nota:90.5, km:2210, posicao:1, elegivel:true, carteira:181.00, podio:300, rpm:86, idle:91, acel:100, motivo:null },
+    { competencia:'2026-07', nota:88.2, km:2050, posicao:1, elegivel:true, carteira:176.40, podio:300, rpm:84, idle:88, acel:98, motivo:null },
+    { competencia:'2026-06', nota:83.0, km:1980, posicao:5, elegivel:true, carteira:166.00, podio:0, rpm:78, idle:85, acel:95, motivo:null },
+    { competencia:'2026-05', nota:86.9, km:2100, posicao:2, elegivel:true, carteira:173.80, podio:150, rpm:83, idle:89, acel:98, motivo:null },
+    { competencia:'2026-04', nota:84.1, km:1900, posicao:3, elegivel:true, carteira:168.20, podio:100, rpm:80, idle:86, acel:96, motivo:null },
+    { competencia:'2026-03', nota:69.5, km:640,  posicao:12, elegivel:false, carteira:0, podio:0, rpm:60, idle:75, acel:90, motivo:'não bateu os 1000 km' },
+    { competencia:'2026-02', nota:81.2, km:1800, posicao:6, elegivel:true, carteira:162.40, podio:0, rpm:76, idle:84, acel:95, motivo:null },
+    { competencia:'2026-01', nota:78.4, km:1750, posicao:8, elegivel:true, carteira:156.80, podio:0, rpm:72, idle:82, acel:94, motivo:null },
+    { competencia:'2025-12', nota:82.3, km:1900, posicao:3, elegivel:true, carteira:164.60, podio:100, rpm:78, idle:85, acel:95, motivo:null },
+    { competencia:'2025-11', nota:79.5, km:1700, posicao:9, elegivel:true, carteira:159.00, podio:0, rpm:74, idle:83, acel:93, motivo:null },
+    { competencia:'2025-10', nota:74.0, km:1500, posicao:11, elegivel:true, carteira:148.00, podio:0, rpm:68, idle:80, acel:92, motivo:null },
+  ] };
+
+var I = function(d){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; };
+var ICO = {
+  rpm:  I('<path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-5"/>'),
+  idle: I('<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/>'),
+  acel: I('<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'),
+  trof: I('<path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h2.5a2.5 2.5 0 0 1 0 5H17"/><path d="M7 5H4.5a2.5 2.5 0 0 0 0 5H7"/><path d="M12 14v3M8.5 20h7"/>'),
+  km:   I('<path d="M4 20L9 4M20 20L15 4"/><path d="M12 4v3M12 10v4M12 17v3"/>'),
+  cal:  I('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
+};
+/* Nomes e explicação da nota (Renan, 05/09/2026: "importante ter explicado o
+   porquê da nota"). A régua é a MESMA do robô (REGUA em conducao-robot.mjs):
+   rpm = a % do tempo na faixa verde já é a nota; idle zera em 25% do tempo
+   parado com motor ligado; acel zera em 3 por 100 km. Daí dá para traduzir a
+   nota de volta na medida sem trazer coluna nova do banco. */
+var REGUA = { idle:25, acel:3 };
+var n1 = function(v){ return (Math.round(v * 10) / 10).toLocaleString('pt-BR'); };
+var PILARES = [
+  { k:'rpm',  nome:'Uso da faixa verde (até 1.700 RPM)',
+    mede: function(n){ return Math.round(n) + '% do tempo rodando na faixa verde'; },
+    regra:'A nota é a porcentagem do tempo em movimento com o motor na faixa verde: 100% na faixa = nota 100; 63% = nota 63.',
+    dica:'Trocar a marcha antes de o motor gritar mantém o giro na faixa verde. É o que mais pesa no seu saldo.' },
+  { k:'idle', nome:'Motor ligado sem rodar',
+    mede: function(n){ return n1((100 - n) * REGUA.idle / 100) + '% do tempo parado com o motor ligado'; },
+    regra:'Nenhum tempo parado com motor ligado = nota 100. ' + REGUA.idle + '% do tempo de direção parado com motor ligado = nota 0. No meio, proporcional.',
+    dica:'Parada de mais de um minuto, desliga. Motor ligado sem rodar gasta diesel e não anda um metro.' },
+  { k:'acel', nome:'Acelerações bruscas',
+    mede: function(n){ return n1((100 - n) * REGUA.acel / 100) + ' acelerações bruscas a cada 100 km'; },
+    regra:'Nenhuma aceleração brusca = nota 100. ' + REGUA.acel + ' a cada 100 km = nota 0. Cada uma a cada 100 km tira ' + Math.round(100 / REGUA.acel) + ' pontos.',
+    dica:'Sair suave do sinal gasta menos e chega junto. Cada aceleração brusca custa do seu saldo.' },
+];
+
+var D = null, ANO_SEL = null;
+function linha(ico, nome, sub, valor, cls, small, extra){
+  return '<div class="li' + (extra||'') + '"><div class="ic">' + ico + '</div><div class="tx"><b>' + nome + '</b><span>' + sub + '</span></div>'
+    + '<div class="vl ' + (cls||'') + '">' + valor + (small ? '<small>' + small + '</small>' : '') + '</div></div>';
+}
+function fmtVal(v){ var t = (+v || 0).toFixed(2).replace('.', ','); return '<small>R$</small>' + t.replace(/\B(?=(\d{3})+(?!\d),)/g, '.'); }
+function mesDe(comp){ var y = +comp.slice(0,4), mo = +comp.slice(5,7) - 1; return { ano:y, mes:mo, nome:MESES_N[mo], rot:MESES_N[mo].slice(0,3) + '/' + y }; }
+/* perdas por pilar, na mesma conta do robô: saldo × peso_i/Σ × (1 − nota_i/100) */
+function perdas(mes, R){
+  var P = R.pesos, den = 0, out = {};
+  PILARES.forEach(function(p){ if (mes && mes[p.k] != null) den += P[p.k]; });
+  PILARES.forEach(function(p){ out[p.k] = (mes && mes[p.k] != null && den) ? R.saldo_inicial * (P[p.k] / den) * (1 - Math.min(100, Math.max(0, mes[p.k])) / 100) : null; });
+  return out;
+}
+
+function pinta(){
+  var R = D.regras, vig = mesDe(D.vigente), atual = null;
+  D.meses.forEach(function(x){ if (x.competencia === D.vigente) atual = x; });
+  var nota = atual ? +atual.nota : null, eleg = atual ? !!atual.elegivel : false;
+  var saldo = atual ? R.saldo_inicial * nota / 100 : R.saldo_inicial;
+  var pct = Math.round(saldo / R.saldo_inicial * 100);
+
+  $('ola').textContent = 'Olá, ' + D.nome.split(' ')[0] + '!';
+  $('sub').textContent = vig.nome.charAt(0).toUpperCase() + vig.nome.slice(1) + ', ' + vig.ano;
+  $('unid').textContent = D.unidade || '';
+  $('av').textContent = D.nome.split(' ').map(function(p){return p[0];}).join('').slice(0,2).toUpperCase();
+
+  // ── saldo + meta do mês ──
+  $('rotSaldo').textContent = !atual ? 'Saldo de partida' : eleg ? 'Saldo atual' : 'Você teria';
+  $('saldo').innerHTML = fmtVal(saldo);
+  $('barraSaldo').style.width = pct + '%';
+  $('metaTxt').innerHTML = '<b>' + brl(saldo) + '</b> / ' + brl(R.saldo_inicial);
+  $('metaPct').textContent = pct + '%';
+  var av = $('avisoEleg');
+  if (!atual) { av.style.display = ''; av.innerHTML = 'O mês ainda não tem dados de condução. O saldo começa cheio e vai sendo apurado conforme você roda.'; }
+  else if (eleg) av.style.display = 'none';
+  else { av.style.display = ''; av.innerHTML = 'Para receber, ainda falta: <b>' + (atual.motivo || 'entrar na regra') + '</b>.'; }
+
+  // ── onde o dinheiro foi ──
+  var pd = perdas(atual, R);
+  $('perdas').innerHTML = PILARES.map(function(p){
+    var v = pd[p.k], n = atual ? atual[p.k] : null;
+    if (v == null) return linha(ICO[p.k], p.nome, 'sem medição ainda', '—', '');
+    var ok = v < 0.005;
+    return linha(ICO[p.k], p.nome, p.mede(n) + ' · nota ' + Math.round(n), ok ? 'tudo certo' : '− ' + brl(v), ok ? 'pos' : 'neg');
+  }).join('');
+
+  // ── pódio + elegibilidade ──
+  var pos = D.posicao, podio = atual ? +atual.podio : 0, km = atual ? +atual.km : 0;
+  var okKm = R.km_min <= 0 || km >= R.km_min, okPos = R.top_n <= 0 || (pos != null && pos <= R.top_n);
+  var podTxt = R.podio.map(function(v, i){ return (i+1) + 'º R$ ' + v; }).join(' · ');
+  $('extras').innerHTML =
+      linha(ICO.trof, 'Prêmio do pódio', podTxt, podio ? '+ ' + brl(podio) : (pos ? pos + 'º lugar' : '—'), podio ? 'pos' : '',
+            podio ? pos + 'º lugar' : 'o pódio é até o ' + R.podio.length + 'º', podio ? ' eu' : '')
+    + (R.km_min > 0 ? linha(ICO.km, 'Rodar ' + R.km_min.toLocaleString('pt-BR') + ' km', okKm ? 'você já rodou' : 'faltam ' + Math.max(0, R.km_min - km).toLocaleString('pt-BR') + ' km',
+            km.toLocaleString('pt-BR') + ' km', okKm ? 'pos' : 'neg') : '')
+    + (R.top_n > 0 ? linha(ICO.trof, 'Ficar entre os ' + R.top_n, okPos ? 'da sua unidade' : 'precisa subir ' + (pos - R.top_n), pos ? pos + 'º' : '—', okPos ? 'pos' : 'neg') : '');
+
+  // ── ganhos, nota, ranking, regras ──
+  renderGanhos();
+  var VOLTA = 2 * Math.PI * 42;
+  $('arco').style.strokeDasharray = VOLTA; $('arco').style.strokeDashoffset = VOLTA * (1 - (nota || 0) / 100);
+  $('score').textContent = nota != null ? nota.toFixed(1).replace('.', ',') : '—';
+  $('faixaTxt').textContent = nota == null ? 'Sem nota ainda' : nota >= 85 ? 'Elite' : nota >= 70 ? 'Bom' : 'Precisa melhorar';
+  $('pilares').innerHTML = PILARES.map(function(p){
+    var n = atual ? atual[p.k] : null;
+    return '<div class="pilar"><div class="cab"><b>' + p.nome + '</b><div class="nota">' + (n != null ? Math.round(n) : '—') + '</div></div>'
+      + '<div class="med">' + (n != null ? p.mede(n) + ' · ' : '') + 'vale ' + R.pesos[p.k] + ' de ' + (R.pesos.rpm + R.pesos.idle + R.pesos.acel) + ' pontos da nota</div>'
+      + '<div class="dica"><b>Como a nota é feita:</b> ' + p.regra + '</div>'
+      + '<div class="dica">' + p.dica + '</div></div>';
+  }).join('');
+  $('ranking').innerHTML = (D.ranking || []).map(function(r){
+    var ini = r.nome.split(' ').map(function(p){return p[0];}).join('').slice(0,2).toUpperCase();
+    return linha('<b style="font-size:11px">' + ini + '</b>', r.eu ? 'Você' : r.nome, r.pos + 'º lugar' + (r.pos <= R.podio.length ? ' · + R$ ' + R.podio[r.pos-1] : ''),
+      (+r.pontuacao).toFixed(1).replace('.', ','), '', 'nota', r.eu ? ' eu' : '');
+  }).join('') || '<div class="li"><div class="tx"><span>Ainda sem ranking neste mês.</span></div></div>';
+  $('rg1').textContent = 'Todo mês você ganha ' + brl(R.saldo_inicial);
+  var cond = [];
+  if (R.km_min > 0) cond.push('rodou ' + R.km_min.toLocaleString('pt-BR') + ' km');
+  if (R.viagens_min > 0) cond.push('fez ' + R.viagens_min + ' viagens');
+  if (R.dias_min > 0) cond.push('teve ' + R.dias_min + ' dias medidos');
+  if (R.score_min > 0) cond.push('tirou nota ' + R.score_min + ' ou mais');
+  if (R.top_n > 0) cond.push('ficou entre os ' + R.top_n);
+  $('rg3').textContent = (cond.length ? 'Se ' + cond.join(' e ') + '. ' : '') + 'Os ' + R.podio.length + ' melhores da unidade ainda levam ' + R.podio.map(function(v){ return 'R$ ' + v; }).join(', ') + '.';
+  $('regua').innerHTML = PILARES.map(function(p, i){
+    return '<div class="passo"><div class="n">' + (i+1) + '</div><div class="t"><b>' + p.nome + '</b><span>Vale ' + R.pesos[p.k] + ' pontos. ' + p.regra + ' Nota 100 não tira nada do saldo; nota 0 tira a parte inteira deste pilar.</span></div></div>';
+  }).join('');
+}
+
+/* ── GANHOS: totalizador do ano + filtro de ano + mês a mês, com o vigente sempre no topo ── */
+function mudaAno(ano){ ANO_SEL = ano; renderGanhos(); }
+function renderGanhos(){
+  var vig = mesDe(D.vigente), anos = {};
+  D.meses.forEach(function(x){ var a = +x.competencia.slice(0,4); anos[a] = anos[a] || []; if (x.competencia !== D.vigente) anos[a].push(x); });
+  anos[vig.ano] = anos[vig.ano] || [];
+  var lista = Object.keys(anos).map(Number).sort(function(a,b){ return b-a; });
+  if (ANO_SEL == null || !anos[ANO_SEL]) ANO_SEL = vig.ano;
+  $('anoSel').innerHTML = lista.map(function(a){ return '<option value="' + a + '"' + (a === ANO_SEL ? ' selected' : '') + '>' + a + '</option>'; }).join('');
+  var H = anos[ANO_SEL], tot = H.reduce(function(a, x){ return a + (+x.carteira || 0) + (+x.podio || 0); }, 0);
+  $('anoTit').textContent = H.length ? 'Você ganhou em ' + ANO_SEL : ANO_SEL + ' ainda não fechou nenhum mês';
+  $('ganhoAno').innerHTML = fmtVal(tot);
+  var atual = null; D.meses.forEach(function(x){ if (x.competencia === D.vigente) atual = x; });
+  var saldoVig = atual && atual.elegivel ? +atual.carteira : 0;
+  var top = linha(ICO.cal, vig.rot, 'em andamento<i>prévia</i>', brl(saldoVig), '', '', ' vig');
+  var fech = H.map(function(x){
+    var v = (+x.carteira || 0) + (+x.podio || 0), m = mesDe(x.competencia);
+    return linha(ICO.cal, m.rot, v === 0 ? (x.motivo || 'sem ganho') : 'nota ' + (+x.nota).toFixed(1).replace('.', ',') + (+x.podio ? ' · pódio + R$ ' + x.podio : ''),
+      (v ? '+ ' : '') + brl(v), v ? 'pos' : 'neg');
+  }).join('');
+  $('meses').innerHTML = top + (fech || '<div class="li"><div class="tx"><span>Nenhum mês fechado em ' + ANO_SEL + ' ainda.</span></div></div>');
+}
+
+/* ── navegação, tema, menu ── */
+function fechaMenu(){ $('menu').classList.remove('on'); }
+function irPara(v){
+  document.querySelectorAll('#nav button').forEach(function(x){ x.classList.toggle('on', x.dataset.v === v); });
+  document.querySelectorAll('.tela').forEach(function(s){ s.classList.remove('on'); });
+  $('v-' + v).classList.add('on'); document.querySelector('.corpo').scrollTop = 0; fechaMenu();
+}
+document.querySelectorAll('#nav button').forEach(function(b){ b.addEventListener('click', function(){ irPara(b.dataset.v); }); });
+document.querySelector('.corpo').addEventListener('click', fechaMenu);
+function aplicaTema(t){
+  document.body.classList.toggle('claro', t === 'claro');
+  try { localStorage.setItem('app4_theme', t === 'claro' ? 'light' : 'dark'); } catch(e){}
+  document.querySelector('meta[name=theme-color]').content = t === 'claro' ? '#EEF0F3' : '#0F1A20';
+}
+$('btTema').addEventListener('click', function(){ aplicaTema(document.body.classList.contains('claro') ? 'escuro' : 'claro'); });
+(function(){ var t; try { t = localStorage.getItem('app4_theme'); } catch(e){} aplicaTema(t === 'light' ? 'claro' : 'escuro'); })();
+
+/* ── PWA: registra o service worker e oferece "Adicionar à tela de início" ── */
+var INSTALL = null;
+if ('serviceWorker' in navigator) window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(e){ console.warn('sw:', e.message); }); });
+/* O botão aparece em TODAS as telas (login, seleção do admin e menu do app) e
+   some quando o app já está instalado (aberto em standalone). No Android/Chrome
+   e no Chrome de computador o navegador entrega o prompt (beforeinstallprompt);
+   no iPhone não existe prompt — a folha mostra o caminho pelo Safari. */
+var INSTALADO = !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+function mostraInstalar(){ ['btInstalar','lgInstalar','selInstalar'].forEach(function(id){ var b = $(id); if (b) b.style.display = INSTALADO ? 'none' : ''; }); }
+window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); INSTALL = e; mostraInstalar(); });
+window.addEventListener('appinstalled', function(){ INSTALADO = true; INSTALL = null; mostraInstalar(); });
+function instalar(){
+  if (INSTALL) { INSTALL.prompt(); INSTALL.userChoice.then(function(){ INSTALL = null; }); return; }
+  var ua = navigator.userAgent || '', ios = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  $('instTxt').innerHTML = ios
+    ? '<p>No iPhone o app se instala pelo <b style="display:inline">Safari</b>:</p><p>1. Toque no botão <b style="display:inline">Compartilhar</b> (o quadrado com a seta para cima, embaixo da tela).</p><p>2. Role e toque em <b style="display:inline">Adicionar à Tela de Início</b>.</p><p>3. Toque em <b style="display:inline">Adicionar</b>. O DriverPro fica na tela inicial e abre sem o navegador.</p>'
+    : /Android/i.test(ua)
+    ? '<p>Toque no menu do navegador (os três pontinhos, no canto de cima) e depois em <b style="display:inline">Instalar aplicativo</b> ou <b style="display:inline">Adicionar à tela inicial</b>. O DriverPro fica na tela inicial e abre sem o navegador.</p>'
+    : '<p>No computador, use o Chrome ou o Edge: clique no ícone de instalar no fim da barra de endereço (ou no menu do navegador, em <b style="display:inline">Instalar DriverPro</b>). O app abre numa janela própria, sem as abas do navegador.</p>';
+  $('inst').classList.add('on');
+}
+mostraInstalar();
+
+/* ── login ── */
+var MODO = 'entrar';
+function modoLogin(m){
+  MODO = m; erroLogin('');
+  $('btEntrar').textContent = m === 'criar' ? 'Criar senha e entrar' : 'Entrar';
+  $('lgRodape').innerHTML = m === 'criar'
+    ? 'Já tem senha? <a onclick="modoLogin(\'entrar\')">Entrar</a>'
+    : 'Primeira vez aqui? <a onclick="modoLogin(\'criar\')">Criar senha</a>';
+}
+function erroLogin(t){ var e = $('lgErro'); e.textContent = t || ''; e.style.display = t ? '' : 'none'; }
+$('cpf').addEventListener('input', function(e){
+  var v = e.target.value.replace(/\D/g, '').slice(0, 11);
+  e.target.value = v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+});
+function entrar(){
+  var cpf = $('cpf').value.replace(/\D/g, ''), pin = $('pin').value.replace(/\D/g, '');
+  if (DEMO) { D = DEMO_DADOS; abre(); return; }
+  if (cpf.length !== 11) return erroLogin('Digite o CPF completo.');
+  if (pin.length !== 4)  return erroLogin('A senha são 4 números.');
+  var bt = $('btEntrar'); bt.disabled = true; erroLogin('');
+  rpc(MODO === 'criar' ? 'ce_app_criar_pin' : 'ce_app_login', { p_cpf: cpf, p_pin: pin }).then(function(r){
+    bt.disabled = false;
+    if (!r.ok) {
+      if (r.primeira_vez) modoLogin('criar');
+      if (MODO === 'criar' && /não está no programa/i.test(r.erro || '')) return quemEVoce(cpf, pin);
+      return erroLogin(r.erro || 'Não deu certo.');
+    }
+    try { localStorage.setItem('app4_token', r.token); localStorage.setItem('app4_admin', r.admin ? '1' : ''); localStorage.removeItem('app4_chave'); } catch(e){}
+    if (r.admin) escolheMotorista(); else carrega(r.token);
+  }).catch(function(e){ bt.disabled = false; erroLogin('Sem conexão com o servidor. Tente de novo.'); console.warn(e); });
+}
+function carrega(token, chave){
+  rpc('ce_app_dados', chave ? { p_token: token, p_chave: chave } : { p_token: token }).then(function(r){
+    if (!r.ok) { if (r.admin) return escolheMotorista(); sair(); return erroLogin(r.erro || 'Entre de novo.'); }
+    D = r; abre();
+  }).catch(function(e){ erroLogin('Sem conexão com o servidor. Tente de novo.'); console.warn(e); });
+}
+/* ── autocadastro: CPF novo → escolhe a unidade e o próprio nome ── */
+var CAD = null;
+function quemEVoce(cpf, pin){
+  CAD = { cpf: cpf, pin: pin };
+  $('app').style.display = 'none'; $('tela-login').classList.remove('on'); $('tela-sel').classList.add('on');
+  $('selBusca').value = ''; $('selBusca').placeholder = 'Buscar o seu nome';
+  document.querySelector('#tela-sel .sel-cab b').textContent = 'Quem é você?';
+  $('selSub').textContent = 'escolha a sua unidade e toque no seu nome';
+  $('selUniWrap').style.display = ''; MOTORISTAS = []; filtraMotoristas();
+  rpc('ce_app_cadastro_lista', {}).then(function(r){
+    var us = (r.unidades || []);
+    $('selUni').innerHTML = '<option value="">Sua unidade…</option>' + us.map(function(u){ return '<option value="' + u + '">' + u + '</option>'; }).join('');
+  }).catch(function(){ $('selLista').innerHTML = '<div class="li"><div class="tx"><span>Sem conexão. Tente de novo.</span></div></div>'; });
+}
+function cadUnidade(u){
+  MOTORISTAS = []; filtraMotoristas(); if (!u) return;
+  $('selLista').innerHTML = '<div class="li"><div class="tx"><span>Carregando…</span></div></div>';
+  rpc('ce_app_cadastro_lista', { p_unidade: u }).then(function(r){
+    MOTORISTAS = (r.motoristas || []).map(function(m){ return { chave: m.chave, nome: m.nome, unidade: u }; }); filtraMotoristas();
+    if (!MOTORISTAS.length) $('selLista').innerHTML = '<div class="li"><div class="tx"><span>Todo mundo desta unidade já se cadastrou. Se você não está, fale com o seu gestor.</span></div></div>';
+  });
+}
+
+/* ── admin: escolhe o motorista e entra como ele ── */
+var MOTORISTAS = [];
+function escolheMotorista(){
+  var t = null; try { t = localStorage.getItem('app4_token'); } catch(e){}
+  CAD = null; $('selUniWrap').style.display = 'none'; $('selBusca').placeholder = 'Buscar por nome ou unidade';
+  document.querySelector('#tela-sel .sel-cab b').textContent = 'Selecione o motorista'; $('selSub').textContent = 'para ver o app como ele vê';
+  $('app').style.display = 'none'; $('tela-login').classList.remove('on'); $('tela-sel').classList.add('on'); fechaMenu();
+  $('selLista').innerHTML = '<div class="li"><div class="tx"><span>Carregando…</span></div></div>';
+  rpc('ce_app_motoristas', { p_token: t }).then(function(r){
+    if (!r.ok) { sair(); return erroLogin(r.erro || 'Entre de novo.'); }
+    MOTORISTAS = r.motoristas || []; $('selSub').textContent = MOTORISTAS.length + ' motoristas com nota'; filtraMotoristas();
+  }).catch(function(e){ $('selLista').innerHTML = '<div class="li"><div class="tx"><span>Sem conexão. Tente de novo.</span></div></div>'; console.warn(e); });
+}
+function filtraMotoristas(){
+  var q = ($('selBusca').value || '').toLowerCase();
+  var l = MOTORISTAS.filter(function(m){ return !q || (m.nome + ' ' + (m.unidade || '')).toLowerCase().indexOf(q) >= 0; });
+  $('selLista').innerHTML = l.slice(0, 200).map(function(m){
+    var ini = m.nome.split(' ').map(function(p){return p[0];}).join('').slice(0,2).toUpperCase();
+    return '<div class="li" data-chave="' + m.chave + '"><div class="ic"><b style="font-size:11px">' + ini + '</b></div><div class="tx"><b>' + m.nome + '</b><span>' + (m.unidade || 'sem unidade') + '</span></div></div>';
+  }).join('') || '<div class="li"><div class="tx"><span>Ninguém com esse nome.</span></div></div>';
+}
+$('selBusca').addEventListener('input', filtraMotoristas);
+$('selLista').addEventListener('click', function(e){
+  var li = e.target.closest('.li[data-chave]'); if (!li) return;
+  if (CAD) {   // autocadastro: amarra o CPF a este motorista e entra
+    var nome = li.querySelector('.tx b').textContent;
+    if (!confirm('Você é ' + nome + '?')) return;
+    li.style.opacity = '.5';
+    rpc('ce_app_cadastro', { p_cpf: CAD.cpf, p_pin: CAD.pin, p_chave: li.dataset.chave }).then(function(r){
+      li.style.opacity = '';
+      if (!r.ok) { alert(r.erro || 'Não deu certo.'); return; }
+      try { localStorage.setItem('app4_token', r.token); localStorage.setItem('app4_admin', ''); } catch(e){}
+      CAD = null; $('tela-sel').classList.remove('on'); carrega(r.token);
+    }).catch(function(){ li.style.opacity = ''; alert('Sem conexão com o servidor. Tente de novo.'); });
+    return;
+  }
+  var t = null; try { t = localStorage.getItem('app4_token'); localStorage.setItem('app4_chave', li.dataset.chave); } catch(e){}
+  $('tela-sel').classList.remove('on'); carrega(t, li.dataset.chave);
+});
+function abre(){ $('tela-login').classList.remove('on'); $('tela-sel').classList.remove('on'); $('app').style.display = 'flex'; $('pin').value = ''; ANO_SEL = null; $('btTrocar').style.display = D.admin ? '' : 'none'; pinta(); }
+function sair(){
+  var t = null; try { t = localStorage.getItem('app4_token'); localStorage.removeItem('app4_token'); localStorage.removeItem('app4_admin'); localStorage.removeItem('app4_chave'); } catch(e){}
+  if (t && !DEMO) rpc('ce_app_sair', { p_token: t }).catch(function(){});
+  D = null; $('app').style.display = 'none'; $('tela-sel').classList.remove('on'); $('tela-login').classList.add('on'); $('pin').value = ''; fechaMenu(); irPara('inicio'); modoLogin('entrar');
+}
+/* sessão guardada: entra direto */
+(function(){ var t = null, adm = '', ch = null; try { t = localStorage.getItem('app4_token'); adm = localStorage.getItem('app4_admin'); ch = localStorage.getItem('app4_chave'); } catch(e){}
+  if (!t || DEMO) return; if (adm === '1' && !ch) escolheMotorista(); else carrega(t, adm === '1' ? ch : null); })();
+</script>
+</body>
+</html>
