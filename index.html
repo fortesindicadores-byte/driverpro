@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="DriverPro">
-<meta name="build" content="202609062200">
+<meta name="build" content="202609062330">
 <title>DriverPro</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="img/icone-192.png">
@@ -147,6 +147,16 @@ body.claro .nav button.on{color:#fff;}
 .rb-sair{margin-left:auto;background:none;border:1px solid var(--brd);color:var(--txt2);font-family:inherit;font-size:11.5px;font-weight:500;border-radius:8px;padding:7px 11px;cursor:pointer;}
 #selBusca{width:100%;background:var(--linha);border:1px solid var(--brd);border-radius:9px;padding:12px 14px;color:var(--txt);font-family:inherit;font-size:14px;margin-bottom:12px;}
 #selBusca:focus{outline:none;border-color:var(--acc);}
+/* admin: chips das unidades liberadas no programa (toque liga/desliga) */
+.unis-wrap{margin-bottom:12px;}
+.unis-t{font-size:10.5px;color:var(--txt2);margin-bottom:7px;}
+.unis-t span{color:var(--txt3);}
+.unis{display:flex;flex-wrap:wrap;gap:6px;}
+.uni{font-size:11px;font-weight:600;padding:6px 10px;border-radius:999px;border:1px solid var(--brd);color:var(--txt2);cursor:pointer;background:var(--linha);user-select:none;}
+.uni small{font-weight:400;color:var(--txt3);margin-left:4px;}
+.uni.on{background:var(--acc);border-color:var(--acc);color:#fff;}
+.uni.on small{color:rgba(255,255,255,.75);}
+.uni.busy{opacity:.5;pointer-events:none;}
 .sel-lista{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .sel-lista .li{cursor:pointer;}
 .sel-lista .li:active{border-color:var(--acc);}
@@ -204,6 +214,10 @@ body.claro .nav button.on{color:#fff;}
   <div class="sel-cab"><div class="logo-sm"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="2" y="2" width="44" height="44" rx="12" fill="#F22C05"/><path d="M12 30a12 12 0 1 1 24 0" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><path d="M24 30l7-8" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><circle cx="24" cy="30" r="2.4" fill="#fff"/></svg></div><div><b>Selecione o motorista</b><span id="selSub">para ver o app como ele vê</span></div>
     <button class="rb-sair" onclick="CAD=null;sair()">Voltar</button></div>
   <div class="anosel" id="selUniWrap" style="display:none;margin-bottom:10px"><select id="selUni" onchange="cadUnidade(this.value)" aria-label="Unidade" style="width:100%"></select></div>
+  <div class="unis-wrap" id="selUnis" style="display:none">
+    <div class="unis-t">Unidades no programa <span id="selUnisSub"></span></div>
+    <div class="unis" id="selUnisLista"></div>
+  </div>
   <input id="selBusca" type="search" placeholder="Buscar por nome ou unidade" autocomplete="off">
   <div class="inst-link" id="selInstalar" style="display:none;margin:0 0 12px"><a onclick="instalar()">Instalar o app no celular</a></div>
   <div class="sel-lista" id="selLista"></div>
@@ -580,7 +594,7 @@ function quemEVoce(cpf, pin){
   $('selBusca').value = ''; $('selBusca').placeholder = 'Buscar o seu nome';
   document.querySelector('#tela-sel .sel-cab b').textContent = 'Quem é você?';
   $('selSub').textContent = 'escolha a sua unidade e toque no seu nome';
-  $('selUniWrap').style.display = ''; MOTORISTAS = []; filtraMotoristas();
+  $('selUniWrap').style.display = ''; $('selUnis').style.display = 'none'; MOTORISTAS = []; filtraMotoristas();
   rpc('ce_app_cadastro_lista', {}).then(function(r){
     var us = (r.unidades || []);
     $('selUni').innerHTML = '<option value="">Sua unidade…</option>' + us.map(function(u){ return '<option value="' + u + '">' + u + '</option>'; }).join('');
@@ -600,6 +614,7 @@ var MOTORISTAS = [];
 function escolheMotorista(){
   var t = null; try { t = localStorage.getItem('app4_token'); } catch(e){}
   CAD = null; $('selUniWrap').style.display = 'none'; $('selBusca').placeholder = 'Buscar por nome ou unidade';
+  carregaUnidades(t);
   document.querySelector('#tela-sel .sel-cab b').textContent = 'Selecione o motorista'; $('selSub').textContent = 'para ver o app como ele vê';
   $('app').style.display = 'none'; $('tela-login').classList.remove('on'); $('tela-sel').classList.add('on'); fechaMenu();
   $('selLista').innerHTML = '<div class="li"><div class="tx"><span>Carregando…</span></div></div>';
@@ -608,6 +623,35 @@ function escolheMotorista(){
     MOTORISTAS = r.motoristas || []; $('selSub').textContent = MOTORISTAS.length + ' motoristas com nota'; filtraMotoristas();
   }).catch(function(e){ $('selLista').innerHTML = '<div class="li"><div class="tx"><span>Sem conexão. Tente de novo.</span></div></div>'; console.warn(e); });
 }
+/* admin: unidades liberadas no programa (Renan, 06/09/2026: começa só com
+   EMP PIRAI; ele liga as outras aqui). Motorista de unidade desligada não
+   cria senha nem entra — o banco recusa (ce_app_unidade_ativa). */
+var UNIS = [];
+function carregaUnidades(t){
+  $('selUnis').style.display = 'none';
+  rpc('ce_app_unidades', { p_token: t }).then(function(r){
+    if (!r.ok) return; UNIS = r.unidades || []; pintaUnidades(r.todas);
+  }).catch(function(){});
+}
+function pintaUnidades(todas){
+  $('selUnis').style.display = '';
+  var n = UNIS.filter(function(u){ return u.ativa; }).length;
+  $('selUnisSub').textContent = todas ? '· todas liberadas' : '· ' + n + ' de ' + UNIS.length + ' liberadas · toque para ligar/desligar';
+  $('selUnisLista').innerHTML = UNIS.map(function(u){
+    return '<span class="uni' + (u.ativa ? ' on' : '') + '" data-uni="' + u.unidade + '">' + u.unidade + '<small>' + u.com_nota + '</small></span>';
+  }).join('');
+}
+$('selUnisLista').addEventListener('click', function(e){
+  var el = e.target.closest('.uni[data-uni]'); if (!el) return;
+  var u = UNIS.filter(function(x){ return x.unidade === el.dataset.uni; })[0]; if (!u) return;
+  var t = null; try { t = localStorage.getItem('app4_token'); } catch(e){}
+  if (u.ativa && !confirm('Desligar ' + u.unidade + '? Os motoristas dela deixam de entrar no app.')) return;
+  el.classList.add('busy');
+  rpc('ce_app_unidade_set', { p_token: t, p_unidade: u.unidade, p_ativa: !u.ativa }).then(function(r){
+    if (!r.ok) { alert(r.erro || 'Não deu certo.'); el.classList.remove('busy'); return; }
+    UNIS = r.unidades || []; pintaUnidades(r.todas);
+  }).catch(function(){ el.classList.remove('busy'); alert('Sem conexão. Tente de novo.'); });
+});
 function filtraMotoristas(){
   var q = ($('selBusca').value || '').toLowerCase();
   var l = MOTORISTAS.filter(function(m){ return !q || (m.nome + ' ' + (m.unidade || '')).toLowerCase().indexOf(q) >= 0; });
