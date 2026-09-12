@@ -19,7 +19,7 @@ name: DriverPro Site Sync
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
